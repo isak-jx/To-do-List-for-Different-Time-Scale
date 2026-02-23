@@ -1,0 +1,5 @@
+{
+  "name": "FocusFlow",
+  "description": "A To-Do Web App with a three-column layout (Calendar, Daily, Weekly) and a separate Long-term goals module.",
+  "requestFramePermissions": []
+}
