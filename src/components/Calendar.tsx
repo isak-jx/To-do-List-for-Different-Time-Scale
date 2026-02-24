@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, startOfWeek, endOfWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Star } from "lucide-react";
 import { useAppStore } from "../store/useStore";
 import { TaskEditorModal } from "./TaskEditorModal";
+import { StarRating } from "./StarRating";
+import { DailyNoteModal } from "./DailyNoteModal";
 import clsx from "clsx";
 import { Task } from "../types";
 
 export const Calendar: React.FC = () => {
-  const { selectedDate, setSelectedDate, tasks, deleteTask } = useAppStore();
+  const { selectedDate, setSelectedDate, tasks, deleteTask, dailyNotes } = useAppStore();
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -34,6 +37,9 @@ export const Calendar: React.FC = () => {
     setEditingTask(null);
     setIsEditorOpen(false);
   };
+
+  const dateStr = format(selectedDate, "yyyy-MM-dd");
+  const dailyNote = dailyNotes[dateStr];
 
   return (
     <div className="flex h-full flex-col bg-white border-r border-gray-200">
@@ -71,7 +77,9 @@ export const Calendar: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4">
         <div className="grid grid-cols-7 gap-1">
           {daysInMonth.map((date) => {
+            const cellDateStr = format(date, "yyyy-MM-dd");
             const dateTasks = getTasksForDate(date);
+            const cellNote = dailyNotes[cellDateStr];
             const isSelected = isSameDay(date, selectedDate);
             const isCurrentMonth = isSameMonth(date, currentMonth);
             const isCurrentDay = isToday(date);
@@ -91,6 +99,13 @@ export const Calendar: React.FC = () => {
               >
                 <span className="text-sm">{format(date, "d")}</span>
                 
+                {cellNote?.rating != null && (
+                  <div className="absolute top-1 right-1 flex items-center gap-0.5 text-yellow-500">
+                    <Star className="h-2.5 w-2.5 fill-current" />
+                    <span className="text-[9px] font-medium leading-none">{cellNote.rating}</span>
+                  </div>
+                )}
+
                 {dateTasks.length > 0 && (
                   <div className="absolute bottom-1.5 flex gap-0.5">
                     {dateTasks.slice(0, 3).map((t, i) => (
@@ -159,6 +174,18 @@ export const Calendar: React.FC = () => {
               ))
             )}
           </div>
+
+          <div 
+            className="mt-6 p-4 rounded-xl border border-gray-200 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+            onClick={() => setIsNoteModalOpen(true)}
+          >
+            <div className="mb-2">
+              <StarRating rating={dailyNote?.rating || null} readonly />
+            </div>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+              {dailyNote?.summary || "No summary for today."}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -168,6 +195,12 @@ export const Calendar: React.FC = () => {
         task={editingTask}
         defaultScale="daily"
         defaultDate={selectedDate}
+      />
+
+      <DailyNoteModal 
+        isOpen={isNoteModalOpen} 
+        onClose={() => setIsNoteModalOpen(false)} 
+        date={selectedDate} 
       />
     </div>
   );

@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Task, LongTermList, TaskScale } from "../types";
+import { Task, LongTermList, TaskScale, DailyNote, WeeklyNote } from "../types";
 
 interface AppState {
   tasks: Task[];
   longTermLists: LongTermList[];
+  dailyNotes: Record<string, DailyNote>;
+  weeklyNotes: Record<string, WeeklyNote>;
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
   
@@ -20,6 +22,10 @@ interface AppState {
   addLongTermList: (list: Omit<LongTermList, "id" | "tasks">) => void;
   updateLongTermList: (id: string, updates: Partial<LongTermList>) => void;
   deleteLongTermList: (id: string) => void;
+
+  // Notes operations
+  updateDailyNote: (date: string, updates: Partial<DailyNote>) => void;
+  updateWeeklyNote: (weekStart: string, updates: Partial<WeeklyNote>) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -35,6 +41,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [dailyNotes, setDailyNotes] = useState<Record<string, DailyNote>>(() => {
+    const saved = localStorage.getItem("dailyNotes");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [weeklyNotes, setWeeklyNotes] = useState<Record<string, WeeklyNote>>(() => {
+    const saved = localStorage.getItem("weeklyNotes");
+    return saved ? JSON.parse(saved) : {};
+  });
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -44,6 +60,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem("longTermLists", JSON.stringify(longTermLists));
   }, [longTermLists]);
+
+  useEffect(() => {
+    localStorage.setItem("dailyNotes", JSON.stringify(dailyNotes));
+  }, [dailyNotes]);
+
+  useEffect(() => {
+    localStorage.setItem("weeklyNotes", JSON.stringify(weeklyNotes));
+  }, [weeklyNotes]);
 
   const addTask = (taskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "linkedWeeklyId" | "linkedDailyIds">) => {
     const now = Date.now();
@@ -228,10 +252,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTasks(prev => prev.filter(t => t.parentLongtermId !== id));
   };
 
+  const updateDailyNote = (date: string, updates: Partial<DailyNote>) => {
+    setDailyNotes(prev => ({
+      ...prev,
+      [date]: { ...prev[date], date, ...updates }
+    }));
+  };
+
+  const updateWeeklyNote = (weekStart: string, updates: Partial<WeeklyNote>) => {
+    setWeeklyNotes(prev => ({
+      ...prev,
+      [weekStart]: { ...prev[weekStart], weekStart, ...updates }
+    }));
+  };
+
   return (
     <AppContext.Provider value={{
       tasks,
       longTermLists,
+      dailyNotes,
+      weeklyNotes,
       selectedDate,
       setSelectedDate,
       addTask,
@@ -240,7 +280,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       copyWeeklyToDaily,
       addLongTermList,
       updateLongTermList,
-      deleteLongTermList
+      deleteLongTermList,
+      updateDailyNote,
+      updateWeeklyNote
     }}>
       {children}
     </AppContext.Provider>
