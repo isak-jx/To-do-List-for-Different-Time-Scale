@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Task, TaskScale } from "../types";
 import { useAppStore } from "../store/useStore";
-import { format } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 
 interface TaskEditorModalProps {
   isOpen: boolean;
@@ -61,7 +61,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       title: title.trim(),
       description: description.trim(),
       scale,
-      date: scale === "daily" ? date : null,
+      date: scale === "daily" ? date : (scale === "weekly" ? (task?.date || format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd")) : null),
       timeRange: {
         start: startTime || null,
         end: endTime || null,

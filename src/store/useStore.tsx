@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { format, startOfWeek } from "date-fns";
 import { Task, LongTermList, TaskScale, DailyNote, WeeklyNote } from "../types";
 
 interface AppState {
@@ -33,7 +34,25 @@ const AppContext = createContext<AppState | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tasks, setTasks] = useState<Task[]>(() => {
     const saved = localStorage.getItem("tasks");
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    
+    const parsed = JSON.parse(saved) as Task[];
+    const now = new Date();
+    const currentWeekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
+    
+    return parsed.map(t => {
+      if (t.scale === "weekly" && !t.date) {
+        if (t.linkedDailyIds && t.linkedDailyIds.length > 0) {
+          const firstDaily = parsed.find(d => d.id === t.linkedDailyIds[0]);
+          if (firstDaily && firstDaily.date) {
+            const [y, m, d] = firstDaily.date.split("-").map(Number);
+            return { ...t, date: format(startOfWeek(new Date(y, m - 1, d), { weekStartsOn: 1 }), "yyyy-MM-dd") };
+          }
+        }
+        return { ...t, date: currentWeekStart };
+      }
+      return t;
+    });
   });
   
   const [longTermLists, setLongTermLists] = useState<LongTermList[]>(() => {
@@ -77,11 +96,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const weeklyId = uuidv4();
       const dailyId = uuidv4();
       
+      const [y, m, d] = (taskData.date || format(new Date(), "yyyy-MM-dd")).split("-").map(Number);
+      const localDate = new Date(y, m - 1, d);
+      const weekStartStr = format(startOfWeek(localDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
+
       const weeklyTask: Task = {
         ...taskData,
         id: weeklyId,
         scale: "weekly",
-        date: null,
+        date: weekStartStr,
         linkedWeeklyId: null,
         linkedDailyIds: [dailyId],
         createdAt: now,

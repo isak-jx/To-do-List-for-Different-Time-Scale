@@ -26,7 +26,7 @@ export const WeeklyList: React.FC = () => {
     updateWeeklyNote(weekStartStr, { summary });
   };
 
-  const weeklyTasks = tasks.filter((t) => t.scale === "weekly");
+  const weeklyTasks = tasks.filter((t) => t.scale === "weekly" && t.date === weekStartStr);
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
