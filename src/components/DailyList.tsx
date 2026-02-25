@@ -13,7 +13,14 @@ export const DailyList: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
-  const dailyTasks = tasks.filter((t) => t.scale === "daily" && t.date === dateStr);
+  const dailyTasks = tasks
+    .filter((t) => t.scale === "daily" && t.date === dateStr)
+    .sort((a, b) => {
+      if (a.completed === b.completed) {
+        return a.createdAt - b.createdAt;
+      }
+      return a.completed ? 1 : -1;
+    });
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);

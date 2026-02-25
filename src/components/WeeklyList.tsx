@@ -26,7 +26,14 @@ export const WeeklyList: React.FC = () => {
     updateWeeklyNote(weekStartStr, { summary });
   };
 
-  const weeklyTasks = tasks.filter((t) => t.scale === "weekly" && t.date === weekStartStr);
+  const weeklyTasks = tasks
+    .filter((t) => t.scale === "weekly" && t.date === weekStartStr)
+    .sort((a, b) => {
+      if (a.completed === b.completed) {
+        return a.createdAt - b.createdAt;
+      }
+      return a.completed ? 1 : -1;
+    });
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
