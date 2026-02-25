@@ -1,4 +1,4 @@
-export type TaskScale = "daily" | "weekly" | "longterm";
+export type TaskScale = "daily" | "weekly" | "longterm" | "event";
 
 export interface TimeRange {
   start: string | null;

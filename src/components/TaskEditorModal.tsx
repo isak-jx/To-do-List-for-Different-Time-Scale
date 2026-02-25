@@ -61,7 +61,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       title: title.trim(),
       description: description.trim(),
       scale,
-      date: scale === "daily" ? date : (scale === "weekly" ? (task?.date || format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd")) : null),
+      date: (scale === "daily" || scale === "event") ? date : (scale === "weekly" ? (task?.date || format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd")) : null),
       timeRange: {
         start: startTime || null,
         end: endTime || null,
@@ -127,13 +127,14 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                 disabled={!!task || !!parentLongtermId}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-100"
               >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
+                <option value="daily">Daily Task</option>
+                <option value="weekly">Weekly Task</option>
+                <option value="event">Event (Schedule)</option>
                 {parentLongtermId && <option value="longterm">Long-term</option>}
               </select>
             </div>
 
-            {scale === "daily" && (
+            {(scale === "daily" || scale === "event") && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                 <input

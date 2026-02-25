@@ -28,6 +28,11 @@ export const Calendar: React.FC = () => {
     return tasks.filter((t) => t.scale === "daily" && t.date === dateStr);
   };
 
+  const getEventsForDate = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return tasks.filter((t) => t.scale === "event" && t.date === dateStr);
+  };
+
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     setIsEditorOpen(true);
@@ -79,6 +84,7 @@ export const Calendar: React.FC = () => {
           {daysInMonth.map((date) => {
             const cellDateStr = format(date, "yyyy-MM-dd");
             const dateTasks = getTasksForDate(date);
+            const dateEvents = getEventsForDate(date);
             const cellNote = dailyNotes[cellDateStr];
             const isSelected = isSameDay(date, selectedDate);
             const isCurrentMonth = isSameMonth(date, currentMonth);
@@ -106,22 +112,40 @@ export const Calendar: React.FC = () => {
                   </div>
                 )}
 
-                {dateTasks.length > 0 && (
-                  <div className="absolute bottom-1.5 flex gap-0.5">
-                    {dateTasks.slice(0, 3).map((t, i) => (
-                      <div
-                        key={i}
-                        className={clsx(
-                          "h-1.5 w-1.5 rounded-full",
-                          t.completed ? "bg-emerald-400" : "bg-indigo-400"
-                        )}
-                      />
-                    ))}
-                    {dateTasks.length > 3 && (
-                      <div className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-                    )}
-                  </div>
-                )}
+                <div className="absolute bottom-1 flex flex-col gap-0.5 items-center">
+                  {dateEvents.length > 0 && (
+                    <div className="flex gap-0.5">
+                      {dateEvents.slice(0, 3).map((t, i) => (
+                        <div
+                          key={`e-${i}`}
+                          className={clsx(
+                            "h-1.5 w-1.5 rounded-full",
+                            t.completed ? "bg-amber-300" : "bg-amber-500"
+                          )}
+                        />
+                      ))}
+                      {dateEvents.length > 3 && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-amber-200" />
+                      )}
+                    </div>
+                  )}
+                  {dateTasks.length > 0 && (
+                    <div className="flex gap-0.5">
+                      {dateTasks.slice(0, 3).map((t, i) => (
+                        <div
+                          key={`t-${i}`}
+                          className={clsx(
+                            "h-1.5 w-1.5 rounded-full",
+                            t.completed ? "bg-emerald-400" : "bg-indigo-400"
+                          )}
+                        />
+                      ))}
+                      {dateTasks.length > 3 && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                      )}
+                    </div>
+                  )}
+                </div>
               </button>
             );
           })}
@@ -130,42 +154,45 @@ export const Calendar: React.FC = () => {
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-900">
-              Events for {format(selectedDate, "MMM d")}
+              Schedule for {format(selectedDate, "MMM d")}
             </h3>
             <button
               onClick={() => setIsEditorOpen(true)}
-              className="rounded-full p-1 text-indigo-600 hover:bg-indigo-50"
+              className="rounded-full p-1 text-amber-600 hover:bg-amber-50"
             >
               <Plus className="h-4 w-4" />
             </button>
           </div>
           
           <div className="space-y-2">
-            {getTasksForDate(selectedDate).length === 0 ? (
+            {getEventsForDate(selectedDate).length === 0 ? (
               <p className="text-xs text-gray-500 text-center py-4">No events scheduled.</p>
             ) : (
-              getTasksForDate(selectedDate).map(task => (
-                <div key={task.id} className="group text-xs border rounded-lg p-2 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => handleEdit(task)}>
-                  <div className="truncate flex-1">
-                    <span className={clsx("font-medium", task.completed && "line-through text-gray-400")}>
-                      {task.title}
-                    </span>
-                    {task.timeRange.start && (
-                      <span className="text-gray-500 ml-2 block">
-                        {task.timeRange.start} {task.timeRange.end ? `- ${task.timeRange.end}` : ""}
+              getEventsForDate(selectedDate).map(task => (
+                <div key={task.id} className="group text-xs border rounded-lg p-2 flex justify-between items-center bg-amber-50/30 hover:bg-amber-50 border-amber-100 transition-colors cursor-pointer" onClick={() => handleEdit(task)}>
+                  <div className="flex items-start gap-2 truncate flex-1">
+                    <div className={clsx("mt-1 h-2 w-2 rounded-full flex-shrink-0", task.completed ? "bg-amber-300" : "bg-amber-500")} />
+                    <div className="truncate">
+                      <span className={clsx("font-medium text-amber-900", task.completed && "line-through opacity-50")}>
+                        {task.title}
                       </span>
-                    )}
+                      {task.timeRange.start && (
+                        <span className="text-amber-700/70 ml-2 block">
+                          {task.timeRange.start} {task.timeRange.end ? `- ${task.timeRange.end}` : ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEdit(task); }}
-                      className="p-1 text-gray-400 hover:text-indigo-600 rounded"
+                      className="p-1 text-amber-600 hover:text-amber-800 rounded"
                     >
                       <Edit2 className="h-3 w-3" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                      className="p-1 text-gray-400 hover:text-red-600 rounded"
+                      className="p-1 text-amber-600 hover:text-red-600 rounded"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -193,7 +220,7 @@ export const Calendar: React.FC = () => {
         isOpen={isEditorOpen}
         onClose={handleCloseEditor}
         task={editingTask}
-        defaultScale="daily"
+        defaultScale="event"
         defaultDate={selectedDate}
       />
 
