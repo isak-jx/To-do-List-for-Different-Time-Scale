@@ -5,10 +5,18 @@ export interface TimeRange {
   end: string | null;
 }
 
+export interface SubTask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
   description: string;
+  descriptionMode?: "text" | "list";
+  subTasks?: SubTask[];
   scale: TaskScale;
   date: string | null; // Format: YYYY-MM-DD
   timeRange: TimeRange;

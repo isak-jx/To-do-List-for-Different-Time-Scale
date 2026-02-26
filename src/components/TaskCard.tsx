@@ -53,10 +53,31 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, index, onEdit, isDragg
             {task.title}
           </h4>
           
-          {task.description && (
-            <p className="mt-1 text-xs text-gray-500 line-clamp-2">
-              {task.description}
-            </p>
+          {task.descriptionMode === "list" && task.subTasks && task.subTasks.length > 0 ? (
+            <div className="mt-3 space-y-1.5">
+              {task.subTasks.map(st => (
+                <div key={st.id} className="flex items-start gap-2 text-xs" onClick={e => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={st.completed}
+                    onChange={(e) => {
+                      const newSubTasks = task.subTasks!.map(s => s.id === st.id ? { ...s, completed: e.target.checked } : s);
+                      updateTask(task.id, { subTasks: newSubTasks });
+                    }}
+                    className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className={clsx("flex-1", st.completed ? "line-through text-gray-400" : "text-gray-600")}>
+                    {st.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            task.description && (
+              <p className="mt-1 text-xs text-gray-500 line-clamp-2">
+                {task.description}
+              </p>
+            )
           )}
           
           {(task.timeRange.start || task.location) && (
