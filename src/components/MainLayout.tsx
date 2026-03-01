@@ -4,9 +4,10 @@ import { Calendar } from "./Calendar";
 import { DailyList } from "./DailyList";
 import { WeeklyList } from "./WeeklyList";
 import { useAppStore } from "../store/useStore";
+import { format, startOfWeek } from "date-fns";
 
 export const MainLayout: React.FC = () => {
-  const { copyWeeklyToDaily } = useAppStore();
+  const { copyWeeklyToDaily, copyWeeklyToWeekly } = useAppStore();
 
   const handleDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -29,6 +30,19 @@ export const MainLayout: React.FC = () => {
     ) {
       const targetDate = destination.droppableId.replace("daily-", "");
       copyWeeklyToDaily(draggableId, targetDate);
+    }
+    
+    // Handle dropping from weekly to calendar
+    if (
+      source.droppableId === "weekly-pool" &&
+      destination.droppableId.startsWith("calendar-")
+    ) {
+      const targetDateStr = destination.droppableId.replace("calendar-", "");
+      const [y, m, d] = targetDateStr.split("-").map(Number);
+      const targetDate = new Date(y, m - 1, d);
+      const targetWeekStartStr = format(startOfWeek(targetDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
+      
+      copyWeeklyToWeekly(draggableId, targetWeekStartStr);
     }
   };
 

@@ -18,6 +18,7 @@ interface AppState {
   
   // Drag and Drop operations
   copyWeeklyToDaily: (weeklyId: string, date: string) => void;
+  copyWeeklyToWeekly: (weeklyId: string, targetWeekStart: string) => void;
   
   // Long-term operations
   addLongTermList: (list: Omit<LongTermList, "id" | "tasks">) => void;
@@ -256,6 +257,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const copyWeeklyToWeekly = (weeklyId: string, targetWeekStart: string) => {
+    setTasks(prev => {
+      const weeklyIndex = prev.findIndex(t => t.id === weeklyId);
+      if (weeklyIndex === -1) return prev;
+      
+      const weeklyTask = prev[weeklyIndex];
+      
+      // Don't copy if it's the same week
+      if (weeklyTask.date === targetWeekStart) return prev;
+
+      const now = Date.now();
+      const newWeeklyId = uuidv4();
+      
+      const newWeeklyTask: Task = {
+        ...weeklyTask,
+        id: newWeeklyId,
+        date: targetWeekStart,
+        completed: false, // Reset completed status
+        linkedWeeklyId: null,
+        linkedDailyIds: [], // Do not copy daily links
+        createdAt: now,
+        updatedAt: now,
+      };
+      
+      // If it has subtasks, reset their completed status too
+      if (newWeeklyTask.subTasks) {
+        newWeeklyTask.subTasks = newWeeklyTask.subTasks.map(st => ({ ...st, completed: false }));
+      }
+      
+      return [...prev, newWeeklyTask];
+    });
+  };
+
   const addLongTermList = (listData: Omit<LongTermList, "id" | "tasks">) => {
     const newList: LongTermList = {
       ...listData,
@@ -301,6 +335,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateTask,
       deleteTask,
       copyWeeklyToDaily,
+      copyWeeklyToWeekly,
       addLongTermList,
       updateLongTermList,
       deleteLongTermList,

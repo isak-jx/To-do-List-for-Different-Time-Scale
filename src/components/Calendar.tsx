@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, startOfWeek, endOfWeek } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Star } from "lucide-react";
+import { Droppable } from "@hello-pangea/dnd";
 import { useAppStore } from "../store/useStore";
 import { TaskEditorModal } from "./TaskEditorModal";
 import { StarRating } from "./StarRating";
@@ -91,62 +92,69 @@ export const Calendar: React.FC = () => {
             const isCurrentDay = isToday(date);
 
             return (
-              <button
-                key={date.toString()}
-                onClick={() => setSelectedDate(date)}
-                className={clsx(
-                  "relative flex aspect-square flex-col items-center justify-center rounded-xl border transition-all",
-                  !isCurrentMonth ? "opacity-40 bg-gray-50/50" : "bg-white",
-                  isSelected
-                    ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm opacity-100"
-                    : "border-transparent hover:border-gray-200 hover:bg-gray-50",
-                  isCurrentDay && !isSelected && "bg-gray-100 font-bold text-gray-900"
-                )}
-              >
-                <span className="text-sm">{format(date, "d")}</span>
-                
-                {cellNote?.rating != null && (
-                  <div className="absolute top-1 right-1 flex items-center gap-0.5 text-yellow-500">
-                    <Star className="h-2.5 w-2.5 fill-current" />
-                    <span className="text-[9px] font-medium leading-none">{cellNote.rating}</span>
+              <Droppable key={`calendar-${cellDateStr}`} droppableId={`calendar-${cellDateStr}`} isDropDisabled={false}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    onClick={() => setSelectedDate(date)}
+                    className={clsx(
+                      "relative flex aspect-square flex-col items-center justify-center rounded-xl border transition-all cursor-pointer",
+                      !isCurrentMonth ? "opacity-40 bg-gray-50/50" : "bg-white",
+                      isSelected
+                        ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm opacity-100"
+                        : "border-transparent hover:border-gray-200 hover:bg-gray-50",
+                      isCurrentDay && !isSelected && "bg-gray-100 font-bold text-gray-900",
+                      snapshot.isDraggingOver && "ring-2 ring-indigo-400 bg-indigo-50/50"
+                    )}
+                  >
+                    <span className="text-sm">{format(date, "d")}</span>
+                    
+                    {cellNote?.rating != null && (
+                      <div className="absolute top-1 right-1 flex items-center gap-0.5 text-yellow-500">
+                        <Star className="h-2.5 w-2.5 fill-current" />
+                        <span className="text-[9px] font-medium leading-none">{cellNote.rating}</span>
+                      </div>
+                    )}
+
+                    <div className="absolute bottom-1 flex flex-col gap-0.5 items-center">
+                      {dateEvents.length > 0 && (
+                        <div className="flex gap-0.5">
+                          {dateEvents.slice(0, 3).map((t, i) => (
+                            <div
+                              key={`e-${i}`}
+                              className={clsx(
+                                "h-1.5 w-1.5 rounded-full",
+                                t.completed ? "bg-amber-300" : "bg-amber-500"
+                              )}
+                            />
+                          ))}
+                          {dateEvents.length > 3 && (
+                            <div className="h-1.5 w-1.5 rounded-full bg-amber-200" />
+                          )}
+                        </div>
+                      )}
+                      {dateTasks.length > 0 && (
+                        <div className="flex gap-0.5">
+                          {dateTasks.slice(0, 3).map((t, i) => (
+                            <div
+                              key={`t-${i}`}
+                              className={clsx(
+                                "h-1.5 w-1.5 rounded-full",
+                                t.completed ? "bg-emerald-400" : "bg-indigo-400"
+                              )}
+                            />
+                          ))}
+                          {dateTasks.length > 3 && (
+                            <div className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="hidden">{provided.placeholder}</div>
                   </div>
                 )}
-
-                <div className="absolute bottom-1 flex flex-col gap-0.5 items-center">
-                  {dateEvents.length > 0 && (
-                    <div className="flex gap-0.5">
-                      {dateEvents.slice(0, 3).map((t, i) => (
-                        <div
-                          key={`e-${i}`}
-                          className={clsx(
-                            "h-1.5 w-1.5 rounded-full",
-                            t.completed ? "bg-amber-300" : "bg-amber-500"
-                          )}
-                        />
-                      ))}
-                      {dateEvents.length > 3 && (
-                        <div className="h-1.5 w-1.5 rounded-full bg-amber-200" />
-                      )}
-                    </div>
-                  )}
-                  {dateTasks.length > 0 && (
-                    <div className="flex gap-0.5">
-                      {dateTasks.slice(0, 3).map((t, i) => (
-                        <div
-                          key={`t-${i}`}
-                          className={clsx(
-                            "h-1.5 w-1.5 rounded-full",
-                            t.completed ? "bg-emerald-400" : "bg-indigo-400"
-                          )}
-                        />
-                      ))}
-                      {dateTasks.length > 3 && (
-                        <div className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </button>
+              </Droppable>
             );
           })}
         </div>
