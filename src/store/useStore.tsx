@@ -149,7 +149,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       nextTasks[taskIndex] = { ...task, ...updates, updatedAt: now };
       
       // Handle two-way sync for daily/weekly
-      const syncFields = ["title", "description", "location", "timeRange", "completed"] as const;
+      const syncFields = ["title", "description", "location", "timeRange", "completed", "subTasks", "descriptionMode"] as const;
       const hasSyncUpdates = syncFields.some(field => field in updates);
       
       if (hasSyncUpdates) {
@@ -281,9 +281,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updatedAt: now,
       };
       
-      // If it has subtasks, reset their completed status too
+      // If it has subtasks, copy them exactly as they are (including completed status)
       if (newWeeklyTask.subTasks) {
-        newWeeklyTask.subTasks = newWeeklyTask.subTasks.map(st => ({ ...st, completed: false }));
+        newWeeklyTask.subTasks = newWeeklyTask.subTasks.map(st => ({ ...st, id: uuidv4() }));
       }
       
       return [...prev, newWeeklyTask];
