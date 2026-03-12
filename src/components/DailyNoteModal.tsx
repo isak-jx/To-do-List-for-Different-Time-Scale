@@ -60,13 +60,9 @@ export const DailyNoteModal: React.FC<DailyNoteModalProps> = ({ isOpen, onClose,
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               onBlur={handleSummaryBlur}
-              maxLength={100}
               className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[100px] resize-none"
-              placeholder="How was your day? (Max 100 characters)"
+              placeholder="How was your day?"
             />
-            <div className="text-right text-xs text-gray-500 mt-1">
-              {summary.length}/100
-            </div>
           </div>
         </div>
       </div>
