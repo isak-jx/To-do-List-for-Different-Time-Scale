@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import { Droppable } from "@hello-pangea/dnd";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, ListTodo } from "lucide-react";
 import { useAppStore } from "../store/useStore";
 import { TaskCard } from "./TaskCard";
 import { TaskEditorModal } from "./TaskEditorModal";
+import { DailyLogModal } from "./DailyLogModal";
 import { Task } from "../types";
 
 export const DailyList: React.FC = () => {
   const { selectedDate, tasks } = useAppStore();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
@@ -41,13 +43,22 @@ export const DailyList: React.FC = () => {
           </h2>
           <p className="text-sm text-gray-500">{format(selectedDate, "MMMM d, yyyy")}</p>
         </div>
-        <button
-          onClick={() => setIsEditorOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add Task
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsLogModalOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-100 transition-colors"
+            title="Daily Log"
+          >
+            <ListTodo className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setIsEditorOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Task
+          </button>
+        </div>
       </div>
 
       <Droppable droppableId={`daily-${dateStr}`}>
@@ -88,6 +99,12 @@ export const DailyList: React.FC = () => {
         task={editingTask}
         defaultScale="daily"
         defaultDate={selectedDate}
+      />
+
+      <DailyLogModal
+        isOpen={isLogModalOpen}
+        onClose={() => setIsLogModalOpen(false)}
+        date={selectedDate}
       />
     </div>
   );

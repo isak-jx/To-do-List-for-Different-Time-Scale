@@ -52,3 +52,18 @@ export interface WeeklyNote {
   summary: string; // max 500 chars
 }
 
+export interface LogTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface LogEntry {
+  id: string;
+  date: string;
+  time: string;
+  tagId: string;
+  content: string;
+  createdAt: number;
+}
+

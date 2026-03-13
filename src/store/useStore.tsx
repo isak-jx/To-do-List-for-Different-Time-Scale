@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { format, startOfWeek } from "date-fns";
-import { Task, LongTermList, TaskScale, DailyNote, WeeklyNote } from "../types";
+import { Task, LongTermList, TaskScale, DailyNote, WeeklyNote, LogTag, LogEntry } from "../types";
 
 interface AppState {
   tasks: Task[];
   longTermLists: LongTermList[];
   dailyNotes: Record<string, DailyNote>;
   weeklyNotes: Record<string, WeeklyNote>;
+  logTags: LogTag[];
+  logEntries: LogEntry[];
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
   
@@ -28,6 +30,14 @@ interface AppState {
   // Notes operations
   updateDailyNote: (date: string, updates: Partial<DailyNote>) => void;
   updateWeeklyNote: (weekStart: string, updates: Partial<WeeklyNote>) => void;
+
+  // Log operations
+  addLogTag: (tag: Omit<LogTag, "id">) => void;
+  updateLogTag: (id: string, updates: Partial<LogTag>) => void;
+  deleteLogTag: (id: string) => void;
+  addLogEntry: (entry: Omit<LogEntry, "id" | "createdAt">) => void;
+  updateLogEntry: (id: string, updates: Partial<LogEntry>) => void;
+  deleteLogEntry: (id: string) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -71,6 +81,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : {};
   });
 
+  const [logTags, setLogTags] = useState<LogTag[]>(() => {
+    const saved = localStorage.getItem("logTags");
+    return saved ? JSON.parse(saved) : [
+      { id: "1", name: "Work", color: "#4f46e5" },
+      { id: "2", name: "Study", color: "#059669" },
+      { id: "3", name: "Life", color: "#d97706" },
+      { id: "4", name: "Rest", color: "#6b7280" },
+    ];
+  });
+
+  const [logEntries, setLogEntries] = useState<LogEntry[]>(() => {
+    const saved = localStorage.getItem("logEntries");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -88,6 +113,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem("weeklyNotes", JSON.stringify(weeklyNotes));
   }, [weeklyNotes]);
+
+  useEffect(() => {
+    localStorage.setItem("logTags", JSON.stringify(logTags));
+  }, [logTags]);
+
+  useEffect(() => {
+    localStorage.setItem("logEntries", JSON.stringify(logEntries));
+  }, [logEntries]);
 
   const addTask = (taskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "linkedWeeklyId" | "linkedDailyIds">) => {
     const now = Date.now();
@@ -323,12 +356,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  const addLogTag = (tag: Omit<LogTag, "id">) => {
+    setLogTags(prev => [...prev, { ...tag, id: uuidv4() }]);
+  };
+
+  const updateLogTag = (id: string, updates: Partial<LogTag>) => {
+    setLogTags(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
+  const deleteLogTag = (id: string) => {
+    setLogTags(prev => prev.filter(t => t.id !== id));
+    // Also remove entries with this tag or handle it gracefully in UI
+    setLogEntries(prev => prev.filter(e => e.tagId !== id));
+  };
+
+  const addLogEntry = (entry: Omit<LogEntry, "id" | "createdAt">) => {
+    setLogEntries(prev => [...prev, { ...entry, id: uuidv4(), createdAt: Date.now() }]);
+  };
+
+  const updateLogEntry = (id: string, updates: Partial<LogEntry>) => {
+    setLogEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+  };
+
+  const deleteLogEntry = (id: string) => {
+    setLogEntries(prev => prev.filter(e => e.id !== id));
+  };
+
   return (
     <AppContext.Provider value={{
       tasks,
       longTermLists,
       dailyNotes,
       weeklyNotes,
+      logTags,
+      logEntries,
       selectedDate,
       setSelectedDate,
       addTask,
@@ -340,7 +401,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateLongTermList,
       deleteLongTermList,
       updateDailyNote,
-      updateWeeklyNote
+      updateWeeklyNote,
+      addLogTag,
+      updateLogTag,
+      deleteLogTag,
+      addLogEntry,
+      updateLogEntry,
+      deleteLogEntry
     }}>
       {children}
     </AppContext.Provider>
