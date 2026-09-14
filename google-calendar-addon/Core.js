@@ -115,6 +115,24 @@ var FF = (function () {
     if (JSON.stringify(s).length > 1000000) fail('第一版数据上限为 100 万字符，请先导出并整理历史记录。');
     return s;
   }
+  function merge(current, incoming) {
+    var s = validate(current), source = validate(incoming);
+    ['tasks', 'longTermLists', 'logTags', 'logEntries'].forEach(function (key) {
+      var byId = new Map(s[key].map(function (item) { return [item.id, item]; }));
+      source[key].forEach(function (item) {
+        var existing = byId.get(item.id);
+        if (!existing) { s[key].push(item); byId.set(item.id, item); }
+        else if (JSON.stringify(existing) !== JSON.stringify(item)) fail('导入与现有数据存在 ID 冲突（' + key + '），未覆盖任何数据。');
+      });
+    });
+    ['dailyNotes', 'weeklyNotes'].forEach(function (key) {
+      Object.keys(source[key]).forEach(function (day) {
+        if (!s[key][day]) s[key][day] = source[key][day];
+        else if (JSON.stringify(s[key][day]) !== JSON.stringify(source[key][day])) fail(day + ' 的复盘已有不同内容，未覆盖，请先整理两份备份。');
+      });
+    });
+    return validate(s);
+  }
   function schedule(t, day, start, end, zone) {
     if (t.scale !== 'daily' && t.scale !== 'event') fail('只有当天任务或日程可以安排到日历，长期列表保持独立。');
     if (t.archived) fail('归档任务不能排时。');
@@ -123,5 +141,5 @@ var FF = (function () {
     text(zone, 100, true);
     return {summary: t.title, description: 'FocusFlow 工作时段。任务完成状态在侧栏管理。', start: {dateTime: day + 'T' + start + ':00', timeZone: zone}, end: {dateTime: day + 'T' + end + ':00', timeZone: zone}, extendedProperties: {private: {focusflowTaskId: t.id}}, reminders: {useDefault: false, overrides: [{method: 'popup', minutes: 10}]}};
   }
-  return {fail: fail, text: text, date: date, week: week, shift: shift, empty: empty, get: get, update: update, add: add, assign: assign, nextWeek: nextWeek, validate: validate, schedule: schedule};
+  return {fail: fail, text: text, date: date, week: week, shift: shift, empty: empty, get: get, update: update, add: add, assign: assign, nextWeek: nextWeek, validate: validate, merge: merge, schedule: schedule};
 })();

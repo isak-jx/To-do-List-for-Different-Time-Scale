@@ -20,9 +20,32 @@ function stateFile_() {
   if (found.length) { props.setProperty('focusflowStateFile', found[0].id); return found[0].id; }
   return null;
 }
-function readState_() {
+function cacheState_(state) {
+  try {
+    var raw = JSON.stringify(state), cache = CacheService.getUserCache();
+    var generation = Utilities.getUuid(), chunks = {}, keys = [];
+    for (var i = 0; i < raw.length; i += 20000) {
+      var key = 'ff:' + generation + ':' + i;
+      keys.push(key); chunks[key] = raw.slice(i, i + 20000);
+    }
+    cache.putAll(chunks, 60);
+    cache.put('focusflowState', JSON.stringify(keys), 30);
+  } catch (_) { /* Cache is optional; Drive remains authoritative. */ }
+}
+function readState_(allowCache) {
+  if (allowCache) {
+    try {
+      var cache = CacheService.getUserCache(), cached = cache.get('focusflowState');
+      if (cached) {
+        var keys = JSON.parse(cached), chunks = cache.getAll(keys);
+        if (keys.every(function (key) { return typeof chunks[key] === 'string'; })) return FF.validate(JSON.parse(keys.map(function (key) { return chunks[key]; }).join('')));
+      }
+    } catch (_) {}
+  }
   var id = stateFile_();
-  return id ? FF.validate(googleRequest_('drive/v3/files/' + encodeURIComponent(id) + '?alt=media')) : FF.empty();
+  var state = id ? FF.validate(googleRequest_('drive/v3/files/' + encodeURIComponent(id) + '?alt=media')) : FF.empty();
+  cacheState_(state);
+  return state;
 }
 function createDataFile_(name, state) {
   // Multipart creates metadata and content together; interruption never leaves an empty state file.
@@ -38,6 +61,7 @@ function saveState_(state) {
   var id = stateFile_();
   if (id) googleRequest_('upload/drive/v3/files/' + encodeURIComponent(id) + '?uploadType=media', 'patch', state);
   else PropertiesService.getUserProperties().setProperty('focusflowStateFile', createDataFile_('focusflow-state-v1.json', state));
+  cacheState_(state);
   return state;
 }
 function withState_(revision, fn) {
