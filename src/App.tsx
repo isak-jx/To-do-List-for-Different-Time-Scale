@@ -4,6 +4,7 @@ import { AppProvider } from "./store/useStore";
 import { MainLayout } from "./components/MainLayout";
 import { LongTermPanel } from "./components/LongTermPanel";
 import clsx from "clsx";
+import { exportBackup } from "./exportBackup";
 
 type View = "main" | "longterm";
 
@@ -22,6 +23,13 @@ function AppContent() {
         </div>
 
         <nav className="flex items-center gap-2 rounded-lg bg-gray-100 p-1">
+          <button
+            onClick={exportBackup}
+            className="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200"
+            title="Download tasks, lists, notes and logs for backup or the Google Calendar add-on"
+          >
+            Export Backup
+          </button>
           <button
             onClick={() => setCurrentView("main")}
             className={clsx(

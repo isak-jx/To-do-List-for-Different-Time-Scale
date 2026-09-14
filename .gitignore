@@ -2,6 +2,8 @@ node_modules/
 build/
 dist/
 coverage/
+.clasp.json
+google-calendar-addon/ImportData.gs
 .DS_Store
 *.log
 .env*
