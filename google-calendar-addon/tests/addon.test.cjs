@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 
 function harness() {
   let counter = 0;
-  const files = new Map(), properties = new Map(), events = new Map(), requests = [];
+  const files = new Map(), properties = new Map(), events = new Map(), requests = [], cache = new Map();
   let lockHeld = false, failSave = false;
   const widgetMethods = new Set(['setFieldName','setTitle','setValue','setMultiline','setText','setOnClickAction','setFunctionName','setParameters','setType','addItem','addWidget','addButton','setUrl','setOpenLink','setHeader','setSubtitle','addSection','setNotification','setNavigation','updateCard','setStateChanged','build']);
   function factory(type) {
@@ -23,6 +23,7 @@ function harness() {
   function response(code, body) { return {getResponseCode: () => code, getContentText: () => JSON.stringify(body)}; }
   const context = vm.createContext({console, Date, Set, JSON, Number, Object, String, Array, RegExp, Error, parseInt,
     CardService,
+    CacheService: {getUserCache: () => ({get: k => cache.get(k), put: (k,v) => cache.set(k,v), remove: k => cache.delete(k), putAll: values => Object.entries(values).forEach(([k,v])=>cache.set(k,v)), getAll: keys => Object.fromEntries(keys.filter(k=>cache.has(k)).map(k=>[k,cache.get(k)]))})},
     ScriptApp: {getOAuthToken: () => 'mock-token'},
     PropertiesService: {getUserProperties: () => ({getProperty: k => properties.get(k) || null, setProperty: (k, v) => properties.set(k, v)})},
     LockService: {getUserLock: () => ({tryLock: () => {assert.equal(lockHeld, false); lockHeld = true; return true;}, releaseLock: () => {lockHeld = false;}})},
@@ -167,7 +168,8 @@ test('card actions create independent list items and round-trip a first import',
   assert.equal(other.context.readState_().tasks[0].title,'Read');
   assert.equal(other.events.size,0);
   const again = other.context.commitImport(event({revision:'1',candidate,day:'2026-09-14'}));
-  assert.match(strings(again), /未覆盖/);
+  assert.match(strings(again), /导入完成/);
+  assert.equal(other.context.readState_().tasks.length, s.tasks.length);
 });
 test('all primary screens render, pagination bounds cards, review survives persistence', () => {
   const {context:c} = harness();
@@ -198,4 +200,29 @@ test('separate users have separate state, and failed writes preserve stored data
   assert.equal(a.context.readState_().tasks[0].title,'A private task');
   const state=a.context.readState_();state.version=2;
   assert.throws(()=>a.FF.validate(state),/版本/);
+});
+
+test('merge preserves trial tasks and calendar IDs; repeated import is idempotent and conflicts are atomic', () => {
+  const {FF,context:c} = harness(), trial = FF.empty(), old = FF.empty();
+  const t = FF.add(trial,{title:'trial',scale:'daily',date:'2026-09-14'},c.Utilities.getUuid);
+  t.calendarEventId = 'keep-event';
+  old.longTermLists.push({id:'old-list',name:'Independent'});
+  FF.add(old,{title:'old',scale:'longterm',parentLongtermId:'old-list'},c.Utilities.getUuid);
+  const merged = FF.merge(trial,old);
+  assert.equal(merged.tasks.length,trial.tasks.length+1);
+  assert.equal(FF.get(merged,t.id).calendarEventId,'keep-event');
+  assert.equal(JSON.stringify(FF.merge(merged,old)),JSON.stringify(merged));
+  const conflict = JSON.parse(JSON.stringify(old)); conflict.tasks[0].title='changed';
+  assert.throws(()=>FF.merge(merged,conflict),/冲突/);
+  assert.equal(merged.tasks.at(-1).title,'old');
+});
+test('navigation cache avoids Drive reads but writes always check latest revision', () => {
+  const {context:c,requests,files,properties} = harness();
+  c.saveState_(c.FF.empty());
+  const before=requests.length;
+  c.readState_(true); c.readState_(true);
+  assert.equal(requests.length,before);
+  files.get(properties.get('focusflowStateFile')).content.revision=9;
+  assert.throws(()=>c.withState_(1,()=>{}),/过期/);
+  assert.equal(c.readState_().revision,9);
 });

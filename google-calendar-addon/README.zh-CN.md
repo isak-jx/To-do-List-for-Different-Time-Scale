@@ -55,7 +55,7 @@
 
 **方式 B：无需部署的导出书签。** 打开发行包中的 `export-bookmark.html`，将“导出 FocusFlow 数据”链接拖到浏览器书签栏。回到原 FocusFlow 网站，点击书签，下载 JSON。此脚本只读取原域名下六个已知的 FocusFlow 键，不发送网络请求，不修改原数据。仓库中的 `make-export-bookmark.cjs` 可重新生成该 HTML。
 
-在插件中打开“数据 / 归档 → 导入旧数据”，将 JSON 全文粘贴，点击“检查并预览”，核对数量后确认。**只允许导入空插件**，不会覆盖已有插件数据；也不会把旧日程自动写入 Calendar。取消预览不会更改正式数据。预览文件会保留在应用专用空间作为原始导入副本。
+在插件中打开“数据 / 归档 → 导入旧数据”，将 JSON 全文粘贴，点击“检查并预览”，核对数量后确认。**合并到已有插件**，保留现有内容；相同 ID 或同日复盘存在不同内容时停止，不覆盖。导入前自动保存插件备份；也不会把旧日程自动写入 Calendar。取消预览不会更改正式数据。预览文件会保留在应用专用空间作为原始导入副本。
 
 导入验证保留原任务 ID、日／周关联、独立长期清单、评分、总结、日志和标签；长期任务的日／周关联会被清空。遇到旧版无日期周任务、重复 ID 或损坏关联会拒绝导入，而不是猜测并覆盖。
 
@@ -88,3 +88,6 @@ npm run build
 - [日历创建权限](https://developers.google.com/workspace/calendar/api/v3/reference/calendars/insert)
 - [事件创建权限与 ID](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert)
 - [用户时区](https://developers.google.com/workspace/add-ons/guides/access-user-locale-timezone)
+
+### 页面响应
+页面导航使用当前用户的 30 秒分块缓存，减少重复 Drive 读取；刷新强制读取 Drive，保存始终读取最新版本并检查冲突。导航不再标记数据变更。每次点击仍需 Apps Script 服务器往返，不能达到本地网页的即时响应。

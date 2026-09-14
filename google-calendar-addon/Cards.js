@@ -40,7 +40,8 @@ function onHomepage(e) {
 }
 function notifyError_(err) { return CardService.newActionResponseBuilder().setNotification(CardService.newNotification().setText(err.message || '未完成，请重试。')).build(); }
 function response_(card, message) {
-  var b = CardService.newActionResponseBuilder().setNavigation(CardService.newNavigation().updateCard(card)).setStateChanged(true);
+  var b = CardService.newActionResponseBuilder().setNavigation(CardService.newNavigation().updateCard(card));
+  if (message) b.setStateChanged(true);
   if (message) b.setNotification(CardService.newNotification().setText(message));
   return b.build();
 }
@@ -48,7 +49,7 @@ function navigate(e) {
   try {
     var p = params_(e);
     if (p.chooseDate) p.day = FF.date(input_(e, 'selectedDay', p.day));
-    return response_(buildCard_(e, p, readState_()));
+    return response_(buildCard_(e, p, readState_(!p.forceRefresh)));
   } catch (err) { return notifyError_(err); }
 }
 function buildCard_(e, parameters, state) {
@@ -58,7 +59,7 @@ function buildCard_(e, parameters, state) {
   var nav = CardService.newCardSection(), buttons = CardService.newButtonSet();
   [['day', '当天'], ['week', '本周'], ['lists', '长期列表']].forEach(function (x) { buttons.addButton(button_(x[1], 'navigate', {view: x[0], day: p.day})); });
   nav.addWidget(buttons);
-  nav.addWidget(CardService.newButtonSet().addButton(button_('复盘 / 日志', 'navigate', {view: 'review', day: p.day})).addButton(button_('数据 / 归档', 'navigate', {view: 'data', day: p.day})).addButton(button_('刷新', 'navigate', p)));
+  nav.addWidget(CardService.newButtonSet().addButton(button_('复盘 / 日志', 'navigate', {view: 'review', day: p.day})).addButton(button_('数据 / 归档', 'navigate', {view: 'data', day: p.day})).addButton(button_('刷新', 'navigate', Object.assign({}, p, {forceRefresh: '1'}))));
   card.addSection(nav);
   var s = CardService.newCardSection();
   var mutation = Object.assign({}, p, {revision: state.revision});
@@ -149,7 +150,7 @@ function buildCard_(e, parameters, state) {
   } else if (p.view === 'archivedLists') {
     pages_(s, state.longTermLists.filter(function (l) { return l.archived; }), p, function (l) { row_(s, l.name, 'navigate', {view: 'list', listId: l.id, day: p.day}); });
   } else if (p.view === 'import') {
-    paragraph_(s, '仅允许导入到空插件。不会自动创建日历事件。把原网页导出的 JSON 全文粘贴到这里，先预览数量。');
+    paragraph_(s, '合并旧数据并保留现有内容；相同 ID 的内容冲突时会停止。不会自动创建日历事件。粘贴原网页导出的 JSON 全文，先预览数量。');
     field_(s, 'importJson', 'FocusFlow JSON', '', true);
     row_(s, '检查并预览', 'previewImport', mutation);
   } else if (p.view === 'export') {
@@ -216,6 +217,7 @@ function previewImport(e) {
     var raw = input_(e, 'importJson');
     if (raw.length > 1000000) throw new Error('数据过大，第一版最多接受 100 万字符。');
     var state = FF.validate(JSON.parse(raw));
+    FF.merge(readState_(), state);
     // Store the candidate privately; action parameters carry only an opaque ID.
     var fileId = createDataFile_('focusflow-import-' + Utilities.getUuid() + '.json', state);
     var section = CardService.newCardSection();
@@ -230,8 +232,9 @@ function commitImport(e) {
     var p = params_(e);
     var candidate = FF.validate(googleRequest_('drive/v3/files/' + encodeURIComponent(p.candidate) + '?alt=media'));
     var state = withState_(p.revision, function (s) {
-      if (s.tasks.length || s.longTermLists.length || Object.keys(s.dailyNotes).length || Object.keys(s.weeklyNotes).length || s.logEntries.length || s.logTags.length) throw new Error('插件已有数据，未覆盖。第一版只支持向空插件导入。');
-      ['tasks', 'longTermLists', 'dailyNotes', 'weeklyNotes', 'logTags', 'logEntries'].forEach(function (k) { s[k] = candidate[k]; });
+      var merged = FF.merge(s, candidate);
+      createDataFile_('focusflow-before-import-' + Utilities.getUuid() + '.json', s);
+      ['tasks', 'longTermLists', 'dailyNotes', 'weeklyNotes', 'logTags', 'logEntries'].forEach(function (k) { s[k] = merged[k]; });
     });
     return response_(buildCard_(e, {view: 'day', day: today_(e)}, state), '导入完成。原网页数据保持不变。');
   } catch (err) { return notifyError_(err); }
