@@ -4,6 +4,10 @@
 
 # Run and deploy your AI Studio app
 
+## Google Calendar add-on
+
+A personal Google Calendar sidebar is available in [`google-calendar-addon`](./google-calendar-addon/README.zh-CN.md). It supports daily/weekly tasks, independent long-term lists, reviews and calendar time blocks. See the installation guide for Google account setup and current limitations. The website's **Export Backup** button exports existing browser data for a one-time migration; the add-on does not automatically sync with this website.
+
 This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/cebf21d5-86fa-4cd5-a310-ddfd377c4885
