@@ -1,6 +1,6 @@
 # FocusFlow Google Calendar 侧栏插件
 
-这是基于现有 FocusFlow 数据结构实现的 Apps Script Google Workspace add-on，面向电脑网页版 Google Calendar 的个人使用。代码和离线测试已完成；Google 账号内的安装、授权及真实 Calendar 验收仍需完成。不是已上架的 Marketplace 插件。
+这是基于现有 FocusFlow 数据结构实现的 Apps Script Google Workspace add-on，面向电脑网页版 Google Calendar 的个人使用。代码和离线测试已完成；2026-09-14 已在个人 Google 账号完成测试安装、授权，验证侧栏主页、时区、每周任务、独立长期列表及复盘页面。真实日历事件写入和旧数据迁移尚未验收。不是已上架的 Marketplace 插件。
 
 ## 使用方式
 
@@ -30,7 +30,7 @@
 1. 打开 [Google Apps Script](https://script.google.com/home)，新建项目，命名 `FocusFlow Calendar`。
 2. 将 `Core.js`、`Google.js`、`Cards.js` 分别复制到项目的三个脚本文件（编辑器显示 `.gs` 后缀正常）。也可将三个文件按上述顺序拼接，全部放进 `Code.gs`。
 3. 项目设置中启用“在编辑器中显示 appsscript.json”，用本目录的 `appsscript.json` 替换其内容并保存。
-4. 在编辑器左侧 **服务 +** 添加 **Google Calendar API v3** 和 **Google Drive API v3**。使用默认 Cloud 项目时，通过此入口启用相应服务；如果使用自选标准 Cloud 项目，还需在该项目的 Cloud Console 中确认两个 API 已启用。
+4. 清单已声明 **Google Calendar API v3** 和 **Google Drive API v3**，确认编辑器左侧“服务”中显示 Calendar、Drive；缺少时通过 **服务 +** 添加。使用默认 Cloud 项目时，通过此入口启用相应服务；如果使用自选标准 Cloud 项目，还需在该项目的 Cloud Console 中确认两个 API 已启用。
 5. 选择 **部署 → 测试部署 → 安装**，按 Google 页面提示完成个人授权。只安装给自己，无需发布到 Marketplace。学校账号出现管理员阻止时不要更换安全设置，应使用获准账号或联系管理员。
 6. 打开或刷新 [Google Calendar](https://calendar.google.com/)，展开右侧栏，点击 FocusFlow。图标当前使用 Google Tasks 图标作为开发期占位，名称是 FocusFlow。
 7. 首次打开应显示空任务页；此时先导入旧数据，再开始使用。第一次点击“安排到 Google Calendar”会创建独立的 `FocusFlow` 日历。若主界面未显示，刷新并在左侧勾选该日历。
@@ -42,6 +42,7 @@
 | 权限 | 用途 |
 | --- | --- |
 | `drive.appdata` | 保存、读取当前用户的插件专用数据和导入预览文件 |
+| `calendar.addons.execute` | 在 Google Calendar 侧栏运行插件 |
 | `calendar.app.created` | 创建并管理由此应用创建的 FocusFlow 日历及事件 |
 | `script.external_request` | 从 Apps Script 调用 Google Drive / Calendar REST API；代码仅访问 `www.googleapis.com` |
 | `script.locale` | 获取 Calendar 提供的用户时区，避免固定使用服务器时区 |
@@ -68,7 +69,7 @@ npm run build
 
 插件测试使用 Node 自带测试运行器，模拟 CardService、Drive 和 Calendar；不调用真实 Google 账号，不需要安装依赖。覆盖周边界、日／周共享状态、长期列表隔离、非法数据、版本冲突、导入往返、重复日历写入及存储失败后的重试。它们不能替代真实 Apps Script 部署测试。
 
-### Google 内验收清单（尚待执行）
+### Google 内进一步验收清单
 
 - 安装、授权后主页与导航正常显示，刷新后数据还在。
 - 新建一个周任务及子任务，加入当天，勾选后日／周状态一致。

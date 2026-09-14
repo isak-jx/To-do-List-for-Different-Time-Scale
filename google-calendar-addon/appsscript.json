@@ -6,18 +6,47 @@
     "https://www.googleapis.com/auth/drive.appdata",
     "https://www.googleapis.com/auth/calendar.app.created",
     "https://www.googleapis.com/auth/script.external_request",
-    "https://www.googleapis.com/auth/script.locale"
+    "https://www.googleapis.com/auth/script.locale",
+    "https://www.googleapis.com/auth/calendar.addons.execute"
   ],
-  "urlFetchWhitelist": ["https://www.googleapis.com/"],
+  "urlFetchWhitelist": [
+    "https://www.googleapis.com/"
+  ],
   "addOns": {
     "common": {
       "name": "FocusFlow",
       "logoUrl": "https://www.gstatic.com/images/branding/product/2x/tasks_64dp.png",
-      "layoutProperties": {"primaryColor": "#4f46e5", "secondaryColor": "#4f46e5"},
+      "layoutProperties": {
+        "primaryColor": "#4f46e5",
+        "secondaryColor": "#4f46e5"
+      },
       "useLocaleFromApp": true,
-      "openLinkUrlPrefixes": ["https://calendar.google.com/", "https://to-do-list-for-different-time-scale.vercel.app/"],
-      "homepageTrigger": {"runFunction": "onHomepage"}
+      "openLinkUrlPrefixes": [
+        "https://calendar.google.com/",
+        "https://to-do-list-for-different-time-scale.vercel.app/"
+      ],
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      }
     },
-    "calendar": {"homepageTrigger": {"runFunction": "onHomepage"}}
+    "calendar": {
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      }
+    }
+  },
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "serviceId": "drive",
+        "userSymbol": "Drive",
+        "version": "v3"
+      },
+      {
+        "serviceId": "calendar",
+        "userSymbol": "Calendar",
+        "version": "v3"
+      }
+    ]
   }
 }
