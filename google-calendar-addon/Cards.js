@@ -45,6 +45,11 @@ function response_(card, message) {
   if (message) b.setNotification(CardService.newNotification().setText(message));
   return b.build();
 }
+function compactButtons_(section, items) {
+  var set = CardService.newButtonSet();
+  items.forEach(function (item) { set.addButton(button_(item[0], item[1], item[2])); });
+  section.addWidget(set);
+}
 function navigate(e) {
   try {
     var p = params_(e);
@@ -56,10 +61,9 @@ function buildCard_(e, parameters, state) {
   var p = Object.assign({view: 'day', day: today_(e)}, parameters);
   FF.date(p.day);
   var card = CardService.newCardBuilder().setHeader(CardService.newCardHeader().setTitle('FocusFlow').setSubtitle(p.day + ' · ' + zone_(e)));
-  var nav = CardService.newCardSection(), buttons = CardService.newButtonSet();
-  [['day', '当天'], ['week', '本周'], ['lists', '长期列表']].forEach(function (x) { buttons.addButton(button_(x[1], 'navigate', {view: x[0], day: p.day})); });
-  nav.addWidget(buttons);
-  nav.addWidget(CardService.newButtonSet().addButton(button_('复盘 / 日志', 'navigate', {view: 'review', day: p.day})).addButton(button_('数据 / 归档', 'navigate', {view: 'data', day: p.day})).addButton(button_('刷新', 'navigate', Object.assign({}, p, {forceRefresh: '1'}))));
+  var nav = CardService.newCardSection();
+  compactButtons_(nav, [['今天', 'navigate', {view: 'day', day: p.day}], ['本周', 'navigate', {view: 'week', day: p.day}], ['长期列表', 'navigate', {view: 'lists', day: p.day}]]);
+  compactButtons_(nav, [['更多', 'navigate', {view: 'more', day: p.day}], ['刷新', 'navigate', Object.assign({}, p, {forceRefresh: '1'})]]);
   card.addSection(nav);
   var s = CardService.newCardSection();
   var mutation = Object.assign({}, p, {revision: state.revision});
@@ -67,13 +71,17 @@ function buildCard_(e, parameters, state) {
   if (p.view === 'day' || p.view === 'week') {
     field_(s, 'selectedDay', '查看日期 YYYY-MM-DD', p.day);
     row_(s, '切换日期', 'navigate', Object.assign({}, p, {chooseDate: '1', offset: 0}));
-    paragraph_(s, p.view === 'week' ? '本周任务池 · ' + FF.week(p.day) + ' 起' : '当天任务');
+    var visible = state.tasks.filter(function (t) { return !t.archived && (p.view === 'week' ? t.scale === 'weekly' && t.date === FF.week(p.day) : (t.scale === 'daily' || t.scale === 'event') && t.date === p.day); });
+    var done = visible.filter(function (t) { return t.completed; }).length;
+    paragraph_(s, (p.view === 'week' ? '本周任务池 · ' + FF.week(p.day) + ' 起' : '当天任务') + '\n' + done + ' / ' + visible.length + ' 已完成');
     row_(s, '＋ 添加任务', 'navigate', {view: 'edit', scale: p.view === 'week' ? 'weekly' : 'daily', day: p.day});
-    pages_(s, state.tasks.filter(function (t) { return !t.archived && (p.view === 'week' ? t.scale === 'weekly' && t.date === FF.week(p.day) : (t.scale === 'daily' || t.scale === 'event') && t.date === p.day); }), p, taskRow);
+    pages_(s, visible, p, taskRow);
   } else if (p.view === 'lists') {
+    var activeLists = state.longTermLists.filter(function (l) { return !l.archived; });
+    paragraph_(s, activeLists.length + ' 个长期列表\n长期目标保持独立，不会进入日程或日历。');
     field_(s, 'listName', '新列表名称', '');
     row_(s, '＋ 创建列表', 'mutate', Object.assign({}, mutation, {op: 'listAdd'}));
-    pages_(s, state.longTermLists.filter(function (l) { return !l.archived; }), p, function (l) {
+    pages_(s, activeLists, p, function (l) {
       var tasks = state.tasks.filter(function (t) { return !t.archived && t.scale === 'longterm' && t.parentLongtermId === l.id; });
       var done = tasks.filter(function (t) { return t.completed; }).length;
       row_(s, l.name + ' · ' + done + '/' + tasks.length + ' · ' + (tasks.length ? Math.round(done / tasks.length * 100) : 0) + '%', 'navigate', {view: 'list', listId: l.id, day: p.day});
@@ -121,6 +129,10 @@ function buildCard_(e, parameters, state) {
     var editing = p.id ? FF.get(state, p.id) : {title: '', description: ''};
     field_(s, 'title', '任务名称', editing.title); field_(s, 'description', '说明', editing.description, true);
     row_(s, '保存', 'mutate', Object.assign({}, mutation, {op: 'saveTask'}));
+  } else if (p.view === 'more') {
+    paragraph_(s, '辅助功能');
+    compactButtons_(s, [['复盘与日志', 'navigate', {view: 'review', day: p.day}], ['数据与归档', 'navigate', {view: 'data', day: p.day}]]);
+    paragraph_(s, '任务和长期列表是两套清晰分开的内容。日历只保存你主动安排的工作时段。');
   } else if (p.view === 'review') {
     var dn = state.dailyNotes[p.day] || {}, wn = state.weeklyNotes[FF.week(p.day)] || {};
     field_(s, 'dailySummary', '每日总结 · ' + p.day, dn.summary, true);
@@ -150,7 +162,7 @@ function buildCard_(e, parameters, state) {
   } else if (p.view === 'archivedLists') {
     pages_(s, state.longTermLists.filter(function (l) { return l.archived; }), p, function (l) { row_(s, l.name, 'navigate', {view: 'list', listId: l.id, day: p.day}); });
   } else if (p.view === 'import') {
-    paragraph_(s, '合并旧数据并保留现有内容；相同 ID 的内容冲突时会停止。不会自动创建日历事件。粘贴原网页导出的 JSON 全文，先预览数量。');
+    paragraph_(s, '把原网页备份合并到插件，现有内容会保留。长期列表保持独立，也不会自动创建日历事件。粘贴 JSON 后先看预览，再确认。');
     field_(s, 'importJson', 'FocusFlow JSON', '', true);
     row_(s, '检查并预览', 'previewImport', mutation);
   } else if (p.view === 'export') {
@@ -217,13 +229,18 @@ function previewImport(e) {
     var raw = input_(e, 'importJson');
     if (raw.length > 1000000) throw new Error('数据过大，第一版最多接受 100 万字符。');
     var state = FF.validate(JSON.parse(raw));
-    FF.merge(readState_(), state);
+    var current = readState_();
+    var merged = FF.merge(current, state);
     // Store the candidate privately; action parameters carry only an opaque ID.
     var fileId = createDataFile_('focusflow-import-' + Utilities.getUuid() + '.json', state);
     var section = CardService.newCardSection();
-    paragraph_(section, '将导入 ' + state.tasks.length + ' 个任务、' + state.longTermLists.length + ' 个长期列表、' + Object.keys(state.dailyNotes).length + ' 份每日复盘、' + Object.keys(state.weeklyNotes).length + ' 份周复盘、' + state.logEntries.length + ' 条日志。长期列表保持独立，不创建日历事件。');
-    section.addWidget(button_('确认导入', 'commitImport', Object.assign({}, params_(e), {candidate: fileId})));
-    section.addWidget(button_('取消', 'navigate', {view: 'data', day: params_(e).day}));
+    paragraph_(section, '将新增 ' + (merged.tasks.length - current.tasks.length) + ' 个任务、' + (merged.longTermLists.length - current.longTermLists.length) + ' 个长期列表。合并后共 ' + merged.tasks.length + ' 个任务、' + merged.longTermLists.length + ' 个长期列表。');
+    var taskExamples = state.tasks.slice(0, 3).map(function (t) { return t.title; }).filter(Boolean);
+    var listExamples = state.longTermLists.slice(0, 3).map(function (l) { return l.name; }).filter(Boolean);
+    if (taskExamples.length) paragraph_(section, '任务示例：' + taskExamples.join(' · ') + (state.tasks.length > taskExamples.length ? ' …' : ''));
+    if (listExamples.length) paragraph_(section, '列表示例：' + listExamples.join(' · ') + (state.longTermLists.length > listExamples.length ? ' …' : ''));
+    paragraph_(section, '另含 ' + Object.keys(state.dailyNotes).length + ' 份每日复盘、' + Object.keys(state.weeklyNotes).length + ' 份周复盘、' + state.logEntries.length + ' 条日志。确认后会先保存当前插件备份。');
+    compactButtons_(section, [['确认导入', 'commitImport', Object.assign({}, params_(e), {candidate: fileId})], ['返回数据', 'navigate', {view: 'data', day: params_(e).day}]]);
     return response_(CardService.newCardBuilder().setHeader(CardService.newCardHeader().setTitle('导入预览')).addSection(section).build());
   } catch (err) { return notifyError_(err); }
 }
